@@ -1,0 +1,328 @@
+<?php 
+session_start();
+if(!isset($_SESSION['user'])){
+header('Location: index.php');
+}
+require("database.php");
+?>
+<!DOCTYPE html>
+<html class="no-js">
+    
+    <head>
+        <title>Admin</title>
+        <!-- Bootstrap -->
+        <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <link href="bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet" media="screen">
+        <link href="vendors/easypiechart/jquery.easy-pie-chart.css" rel="stylesheet" media="screen">
+		<link href="assets/DT_bootstrap.css" rel="stylesheet" media="screen">
+        <link href="assets/styles.css" rel="stylesheet" media="screen">
+        <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+        <!--[if lt IE 9]>
+            <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+		<script src="vendors/modernizr-2.6.2-respond-1.1.0.min.js"></script>
+    </head>
+    
+    <body>
+
+	
+        <div class="navbar navbar-fixed-top">
+            <div class="navbar-inner">
+                <div class="container-fluid">
+                    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse"> <span class="icon-bar"></span>
+                     <span class="icon-bar"></span>
+                     <span class="icon-bar"></span>
+                    </a>
+                    <a class="brand" href="#">Admin Paneli</a>
+                    <div class="nav-collapse collapse">
+                        <ul class="nav pull-right">
+                            <li class="dropdown">
+                                <a href="#" role="button" class="dropdown-toggle" data-toggle="dropdown"> <i class="icon-user"></i><?php echo $_SESSION['user'];?><i class="caret"></i>
+
+                                </a>
+                                <ul class="dropdown-menu">
+                                     <li>
+                                        <a tabindex="-1" href="logout.php">Çıkış</a>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                         
+                    </div>
+                    <!--/.nav-collapse -->
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <div class="row-fluid">
+                <div class="span3" id="sidebar">
+                    <ul class="nav nav-list bs-docs-sidenav nav-collapse collapse">
+                        <li class="active">
+                            <a href="process.php"><i class="icon-chevron-right"></i>Mevcut Otobüsleri Güncelle</a>
+                        </li>
+                        <li class="active"><button onclick="add_bus()" class="btn btn-default pull-right" style="margin-left:5px"><i class="icon-plus-sign"></i>  Yeni Otobüs Ekle </button></li>
+                         
+                    </ul>
+                </div>
+                
+                <!--/span-->
+                <div class="span9" id="content">
+                     <div class="row-fluid">
+                        <!-- block -->
+                        <div class="block">
+                            <div class="navbar navbar-inner block-header">
+                                <div class="muted pull-left">Mevcut Otobüs Seferleri</div>
+								<button onclick="add_bus()" class="btn btn-default pull-right" style="margin-left:5px"><i class="icon-plus-sign"></i>Yeni Otobus Ekle</button>&nbsp;&nbsp;
+								<button onclick="add_guz()" class="btn btn-default pull-right" style="margin-left:5px" ><i class="icon-plus-sign"></i>Yeni Güzergah Ekle/Sil</button>
+							 </div>
+                            <div class="block-content collapse in">
+                                <div class="span12">
+  									<table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="example" style="font-size:12px;">
+										<thead>
+											<tr>
+												<th>Otobüs Renk</th>
+												<th>Otobüs No</th>
+												<th>Geliş-Güzergahı</th>
+												<th>Gidiş-Güzergahı</th>
+											 </tr>
+										</thead>
+										<tbody>
+										<?php 
+										$SQ = sprintf("SELECT O.No,O.Renk,O.GuzergahID,O.OtobusID,G.BasNok,G.BitNok,G.DonusAraDurak,G.GidisAraDurak from otobus AS O LEFT OUTER JOIN guzergah AS G ON O.GuzergahID=G.GuzergahID");
+                                        $result = mysql_query($SQ);
+                                        if (!$result) {
+                                          die('Geçersiz Sorgu: ' . mysql_error());
+                                        } 
+                                        while($row = mysql_fetch_assoc($result)){
+										
+										 echo '<tr class="gradeB" onclick="otobus_sefer_guncelle($(this),'.$row["GuzergahID"].','.$row["OtobusID"].')" >';
+										 echo "<td class=col0>".$row["Renk"]."</td>";
+										 echo "<td class=col1>".$row["No"]."</td>";
+										 echo "<td class=col2>".$row["DonusAraDurak"]."</td>";
+										 echo "<td class=col3>".$row["GidisAraDurak"]."</td>";
+										 echo "</tr>";
+										}
+										
+										?>
+										   
+											 
+										</tbody>
+									</table>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /block -->
+                    </div>
+                </div>
+				<!-- Modals -->
+				<div id="myModal" class="modal hide">
+				<div class="modal-header">
+				<button data-dismiss="modal" class="close" type="button">&times;</button>
+				<h3>Kırmızı 1 Otobüs Seferi</h3>
+				 </div>
+				 <div class="modal-body">
+				    <div class="block-content collapse in">
+				   <input type="hidden" id="otoid" value="">
+                    <div class="span12">
+					 <div class="control-group ">
+                      <label class="control-label" for="sefer">Sefer'i</label>
+                       <div class="controls">
+                                           
+					<select id="sefer">
+					<?php 
+                      $SQ = sprintf("SELECT * from guzergah");
+                                        $result = mysql_query($SQ);
+                                        if (!$result) {
+                                          die('Geçersiz Sorgu: ' . mysql_error());
+                                        } 
+                                        while($row = mysql_fetch_assoc($result)){
+										 echo '<option value="'.$row["GuzergahID"].'">'.$row["BasNok"].'-'.$row["BitNok"].'</option>';
+										 }
+										 
+									 
+					?>
+					</select>
+					</div>
+                    </div>
+					</div>
+					<div class="span12">
+					<div class="row-fluid">
+		  
+			         <address  style="max-width: 500px; word-wrap: break-word;" > <strong>Gidiş Güzergahı:</strong><br/><span id="gidisGuzergah"></span></address>
+		 			 <address  style="max-width: 500px; word-wrap: break-word;" > <strong>Geliş Güzergahı:</strong><br/><span id="donusGuzergah"></span></address>
+                       
+					 </div>
+					</div>
+					 
+					<div class="span12">
+					<div class="span6">
+					<div class="row-fluid" >
+					<h4>Normal Günler</h4>
+		               <div class="block-content collapse in" id="zaman">
+					   </div>
+			            <a href="#" onclick="zaman_addrow()">Satır Ekle</a>
+					 </div>
+					 </div>
+					 <div class="span6">
+					 <div class="row-fluid" >
+					 <h4>Pazar Özel Günler</h4>
+		               <div class="block-content collapse in" id="zaman1">
+					   </div>
+			            <a href="#" onclick="zaman1_addrow()">Satır Ekle</a>
+					 </div>
+					 </div>
+					 </div>
+					</div>
+				   		
+			  </div>
+			 
+			   <div class="modal-footer">
+				 <button class="btn btn-success"  onclick="oto_update()"type="button">Güncelle</button>
+				 <button class="btn btn-default" data-dismiss="modal"  type="button">İptal Et</button>
+			  </div>
+			  </div>
+			  
+			  	<!-- Modals -->
+				<div id="myModal_addb" class="modal hide">
+				<div class="modal-header">
+				<button data-dismiss="modal" class="close" type="button">&times;</button>
+				<h3>Yeni Otobüs Ekle</h3>
+				 </div>
+				 <div class="modal-body">
+				 		   
+				    <div class="block-content collapse in">
+				    
+                    <div class="span12">
+				 
+					<div class="form-group">
+                          <label for="renk">Rengi</label>
+		     			 <input type="text" id="renk" class="input" placeholder="Rengi">
+					 </div>
+					 <div class="form-group">
+                          <label for="number">Numarası</label>
+                          <input type="number" id="number" class="input" placeholder="Numarası">
+                       </div>
+                      <div class="control-group ">
+                      <label class="control-label" for="sefer">Güzergahı</label>
+                       <div class="controls">
+                                           
+					<select id="a_sefer">
+					<?php 
+                      $SQ = sprintf("SELECT * from guzergah");
+                                        $result = mysql_query($SQ);
+                                        if (!$result) {
+                                          die('Geçersiz Sorgu: ' . mysql_error());
+                                        } 
+                                        while($row = mysql_fetch_assoc($result)){
+										 echo '<option value="'.$row["GuzergahID"].'">'.$row["BasNok"].'-'.$row["BitNok"].'</option>';
+										 }
+									 
+					?>
+					</select>
+					
+					</div>
+                    </div>
+					</div>                   
+                          
+		 
+					  
+			     <div id="info_b"></div>
+					</div>
+				   		
+			  </div>
+			 
+			   <div class="modal-footer">
+				 <button class="btn btn-success"  onclick="add_oto()"type="button">Ekle</button>
+				 <button class="btn btn-default" data-dismiss="modal"  type="button">İptal Et</button>
+			  </div>
+			  </div>
+			  <div id="myModal_guz" class="modal hide">
+				<div class="modal-header">
+				<button data-dismiss="modal" class="close" type="button">&times;</button>
+				<h3>Güzergah Düzenle</h3>
+				<button class="btn btn-default pull-right" onclick="new_guz()">Yeni Güzergah Ekle</button>
+				 </div>
+				 <div class="modal-body">
+				 		   
+				    <div class="block-content collapse in">
+				    
+                    <div class="span12">
+				 
+					 
+                      <div class="control-group ">
+                      <label class="control-label" for="sefer">Sefer'i</label>
+                       <div class="controls">
+                                           
+					<select id="g_sefer">
+					<option value="-1">Sefer Seçiniz</option>
+					<?php 
+                      $SQ = sprintf("SELECT * from guzergah");
+                                        $result = mysql_query($SQ);
+                                        if (!$result) {
+                                          die('Geçersiz Sorgu: ' . mysql_error());
+                                        } 
+                                        while($row = mysql_fetch_assoc($result)){
+										 echo '<option value="'.$row["GuzergahID"].'">'.$row["BasNok"].'-'.$row["BitNok"].'</option>';
+										 }
+									 
+					?>
+					</select>
+					
+					</div>
+                    </div>
+					</div>                   
+                        <div class="span12" id="details">
+						<div class="form-group">
+                          <label for="baslangic">Başlangıç</label>
+		     			 <input type="text" id="baslangic" class="input" placeholder="Başlangıç">
+					 </div>
+					 <div class="form-group">
+                          <label for="bitis">Numarası</label>
+                          <input type="text" id="bitis" class="input" placeholder="Bitiş">
+                       </div>
+					   <div class="form-group">
+                          <label for="g_bitis">Gidiş Güzergahı</label>
+                          <textarea  id="g_bitis" class="input" placeholder="Bitiş"></textarea>
+                       </div>
+					   <div class="form-group">
+                          <label for="g_basla">Gidiş Güzergahı</label>
+                          <textarea  id="g_basla" class="input" placeholder="Başlangıç"></textarea>
+                       </div>
+						</div>  
+				     
+					  
+			      <div id="info_g"></div>
+					</div>
+				   		
+			  </div>
+			 
+			   <div class="modal-footer">
+				 <button class="btn btn-success"  onclick="save_guz()"type="button">Güncelle</button>
+				 <button class="btn btn-default" data-dismiss="modal"  type="button">İptal Et</button>
+			  </div>
+			  </div>
+			</div>
+			 
+            <hr>
+            <footer>
+                <p>&copy;sMr</p>
+            </footer>
+        </div>
+        <!--/.fluid-container-->
+          <script src="vendors/jquery-1.9.1.js"></script>
+        <script src="bootstrap/js/bootstrap.min.js"></script>
+        <script src="vendors/datatables/js/jquery.dataTables.min.js"></script>
+        <script src="js/mevcut_oto.js"></script>
+
+        <script src="assets/scripts.js"></script>
+        <script src="assets/DT_bootstrap.js"></script>
+        <script>
+        $(function() {
+            
+        });
+        </script>
+		 
+        
+    </body>
+
+</html>
